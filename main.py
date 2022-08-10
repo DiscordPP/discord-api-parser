@@ -88,7 +88,7 @@ def parse_file(path):
                             header_type == HeaderType.ENDPOINT and (headers[2].endswith('Params'))
                     ):
                         name = headers[2].removesuffix(' Structure')
-                        out = []
+                        out = {}
                         for row in rows:
                             field: Dict[str, Any] = copy(row)
                             if 'name' in field:
@@ -102,7 +102,7 @@ def parse_file(path):
                             field['nullable'] = field['type'].startswith('?')
                             field['type'] = field['type'].removeprefix('?')
 
-                            out.append(field)
+                            out[field.pop("field")] = field
                         if header_type == HeaderType.OBJECT:
                             objects[name] = out
                             last_name = name
