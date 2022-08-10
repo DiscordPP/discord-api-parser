@@ -94,7 +94,10 @@ def parse_file(path):
                             if 'name' in field:
                                 field['field'] = field.pop('name')
                             if ' ' in field['field']:
-                                [field['field'], field['note']] = field['field'].split(' ')
+                                [field['field'], field['note']] = field['field'].split(' ', 1)
+
+                            if field['type'].endswith('*'):
+                                [field['type'], field['note']] = field['type'].rsplit(' ', 1)
 
                             field['optional'] = field['field'].endswith('?')
                             field['field'] = field['field'].removesuffix('?')
