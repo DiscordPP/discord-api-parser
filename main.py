@@ -44,7 +44,7 @@ def lower_items(target: List[str]):
 
 
 def parse_file(path):
-    with Path(path).open(encoding='UTF-8') as file:
+    with path.open(encoding='UTF-8') as file:
         md = json.loads(mistletoe.markdown(file, ASTRenderer))
         headers: List[str] = ['', '', '']
         header_type: HeaderType = HeaderType.NONE
@@ -56,10 +56,11 @@ def parse_file(path):
         for node in md['children']:
             match node['type']:
                 case 'Heading':
-                    level = [0, 0, 1, 1, 2, 2, 2][node['level']]
+                    level = [0, 0, 1, 1, 2 if not path.stem == "Gateway" else 1, 2, 2][node['level']]
                     content = node['children'][0]['content']
+                    # print(node['level'], level, content)
                     headers = [*headers[:level], content, *[''] * (2 - level)]
-                    if headers[1].endswith('Object'):
+                    if headers[1].endswith('Object') or path.stem == "Gateway":
                         if headers[2]:
                             if headers[2].endswith('Structure'):
                                 header_type = HeaderType.OBJECT
