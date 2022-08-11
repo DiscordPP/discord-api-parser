@@ -1,6 +1,7 @@
 import json
 from copy import copy, deepcopy
 from enum import Enum
+from itertools import chain
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -94,11 +95,16 @@ def parse_file(path):
                             field: Dict[str, Any] = copy(row)
                             if 'name' in field:
                                 field['field'] = field.pop('name')
-                            if ' ' in field['field']:
-                                [field['field'], field['note']] = field['field'].split(' ', 1)
 
-                            if field['type'].endswith('*'):
-                                [field['type'], field['note']] = field['type'].rsplit(' ', 1)
+                            for col in ['field', 'type']:
+                                if field[col].endswith('*'):
+                                    i = str(field[col]).find('*')
+                                    tag = field[col][i:]
+                                    field[f'note-{tag}'] = col
+                                    field[col] = field[col][:i].strip()
+
+                            if ' ' in field['field']:
+                                [field['field'], field['note-field']] = field['field'].split(' ', 1)
 
                             field['optional'] = field['field'].endswith('?')
                             field['field'] = field['field'].removesuffix('?')
@@ -124,13 +130,22 @@ def parse_file(path):
                 case 'Paragraph':
                     content = flatten_content(node)
                     # print(content)
-                    if last_type == HeaderType.OBJECT and node['children'][0]['type'] == 'EscapeSequence':
-                        marker, note = content.split(' ', 1)
-                        for field in objects[last_name]:
-                            if 'Note' in field and field['Note'] == marker:
-                                field['Note'] = note
+                    if (last_type == HeaderType.OBJECT or last_type == HeaderType.ENDPOINT) and node['children'][0]['type'] == 'EscapeSequence':
+                        index = content.rfind('*')
+                        marker = content[:index+1]
+                        note = content[index+1:].strip()
+                        for field in chain(
+                                (objects.get(last_name) or {}).values(),
+                                ((endpoints.get(last_name) or {}).get("json") or {}).values(),
+                                ((endpoints.get(last_name) or {}).get("query") or {}).values()
+                        ):
+                            # print(field)
+                            target = field.get(f"note-{marker}")
+                            if target:
+                                field[f"note-{target}"] = (field.get(f"note-{target}") or '') + note
+                                field.pop(f"note-{marker}")
 
-            last_type = type
+            last_type = header_type
     return objects, endpoints, enums
 
 
