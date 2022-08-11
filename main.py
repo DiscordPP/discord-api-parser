@@ -54,15 +54,20 @@ def parse_file(path):
         objects = {}
         endpoints = {}
         enums = {}
+        docs_url = ""
         for node in md['children']:
             match node['type']:
                 case 'Heading':
                     level = [0, 0, 1, 1, 2 if not path.stem == "Gateway" else 1, 2, 2][node['level']]
                     content = node['children'][0]['content']
-                    # print(node['level'], level, content)
+                    #print(node['level'], level, content, node)
                     headers = [*headers[:level], content, *[''] * (2 - level)]
                     if headers[1].endswith('Object') or path.stem == "Gateway":
                         if headers[2]:
+                            docs_url =\
+                                f'https://discord.com/developers/docs/{path.parts[-2]}'\
+                                f'/{path.stem.lower().replace("_", "-")}'\
+                                f'#{"-".join([h.lower().replace(" ", "-") for h in headers[1:2]])}'
                             if headers[2].endswith('Structure'):
                                 header_type = HeaderType.OBJECT
                             else:
@@ -90,7 +95,11 @@ def parse_file(path):
                             header_type == HeaderType.ENDPOINT and (headers[2].endswith('Params'))
                     ):
                         name = headers[2].removesuffix(' Structure')
-                        out = {}
+                        out = {
+                            "discord-api-json": {
+                                "docs_url": docs_url
+                            }
+                        }
                         for row in rows:
                             field: Dict[str, Any] = copy(row)
                             if 'name' in field:
