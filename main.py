@@ -96,7 +96,7 @@ def parse_file(path):
                     ):
                         name = headers[2].removesuffix(' Structure')
                         out = {
-                            "discord-api-json": {
+                            "parser-data": {
                                 "docs_url": docs_url
                             }
                         }
