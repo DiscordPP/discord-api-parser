@@ -1,25 +1,11 @@
 import json
-from copy import copy, deepcopy
-from enum import Enum
-from itertools import chain
 from pathlib import Path
 from typing import List, Dict, Any
 
 import mistletoe
 from mistletoe.ast_renderer import ASTRenderer
 
-
-# https://svn.blender.org/svnroot/bf-blender/trunk/blender/build_files/scons/tools/bcolors.py
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+from util import traverse, bcolors
 
 
 def flatten_content(node: Dict[str, Any], new_line: str = '', root: bool = True):
@@ -34,31 +20,35 @@ def flatten_content(node: Dict[str, Any], new_line: str = '', root: bool = True)
     return out
 
 
-def traverse(target, path) -> dict:
-    out = target
-    for item in path:
-        out = out.get(item)
-    return out
-
-
-def simplify(data) -> dict:
-    md = json.loads(mistletoe.markdown(data, ASTRenderer))
+def simplify(filepath) -> dict:
+    md = json.loads(mistletoe.markdown(filepath.read_text(encoding='UTF-8'), ASTRenderer))
     out = {"content": []}
-    headers = []
+    headers = ['' for _ in range(6)]
     for node in md['children']:
         match node['type']:
             case 'Heading':
                 level = node['level']
                 content = node['children'][0]['content']
-                headers = [*headers[:level], content]
-                parent = traverse(out, headers[:-1])
+                headers = [*headers[:level], content, *['' for _ in range(6 - level)]]
+                parent = traverse(out, headers[:level])
                 parent["content"].append('|' + content)
-                parent[content] = {"content": []}
+                url: str = f'https://discord.com/developers/docs/{filepath.parts[-2]}/' \
+                           f'{filepath.stem.lower().replace("_", "-")}#'
+                if level <= 3:
+                    url += headers[level].lower().replace(" ", "-")
+                else:
+                    url += "-".join([h.lower().replace(" ", "-") for h in [headers[parent["level"]], headers[level]]])
+                parent[content] = {
+                    "level": level,
+                    "url": url,
+                    "content": []
+                }
             case 'Table':
                 traverse(out, headers)["content"].append([
                     [field['children'][0]['content'] for field in node['header']['children']],
                     *[[flatten_content(cell) for cell in row['children']] for row in node['children']]
                 ])
+                pass
             case 'Paragraph':
                 traverse(out, headers)["content"].append(flatten_content(node, '\n'))
             case 'Quote':
@@ -80,7 +70,7 @@ def simplify(data) -> dict:
 
 if __name__ == '__main__':
     for filepath in Path('./discord-api-docs/docs').rglob("*.md"):
-        simplified = simplify(filepath.read_text(encoding='UTF-8'))
+        simplified = simplify(filepath)
         # print(simplified)
         target_dir = Path('./discord-api-json/', *filepath.parts[2:-1])
         target_dir.mkdir(parents=True, exist_ok=True)
