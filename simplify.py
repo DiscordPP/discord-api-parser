@@ -8,7 +8,7 @@ from mistletoe.ast_renderer import ASTRenderer
 from util import traverse, bcolors
 
 
-def flatten_content(node: Dict[str, Any], new_line: str = '', root: bool = True):
+def flatten_content(node: Dict[str, Any], new_line: str = '', root: bool = True) -> str:
     out = new_line.removeprefix('\n') if root else ''
     children: List[Dict] = node["children"]
     for child in children:
@@ -22,17 +22,20 @@ def flatten_content(node: Dict[str, Any], new_line: str = '', root: bool = True)
 
 def simplify(filepath) -> dict:
     md = json.loads(mistletoe.markdown(filepath.read_text(encoding='UTF-8'), ASTRenderer))
-    out = {"content": []}
-    headers = ['' for _ in range(6)]
+    out: Dict[str, Any] = {"content": []}
+    headers: list = ['' for _ in range(6)]
     for node in md['children']:
         match node['type']:
             case 'Heading':
-                level = node['level']
-                content = node['children'][0]['content']
+                level: int = node['level']
+                content: str = node['children'][0]['content']
+                endpoint: str = ''
+                if " % " in content:
+                    content, endpoint = content.split(" % ", 1)
                 headers = [*headers[:level], content, *['' for _ in range(6 - level)]]
-                parent = traverse(out, headers[:level])
+                parent: Dict[str, Any] = traverse(out, headers[:level])
                 parent["content"].append('|' + content)
-                url: str = f'https://discord.com/developers/docs/{filepath.parts[-2]}/' \
+                url: str = f'https://discord.com/developers/docs/{filepath.parts[-2].replace("_", "-")}/' \
                            f'{filepath.stem.lower().replace("_", "-")}#'
                 if level <= 3:
                     url += headers[level].lower().replace(" ", "-")
@@ -40,7 +43,10 @@ def simplify(filepath) -> dict:
                     url += "-".join([h.lower().replace(" ", "-") for h in [headers[parent["level"]], headers[level]]])
                 parent[content] = {
                     "level": level,
-                    "url": url,
+                    "url": url
+                } | ({
+                    "endpoint": endpoint,
+                } if endpoint else {}) | {
                     "content": []
                 }
             case 'Table':
