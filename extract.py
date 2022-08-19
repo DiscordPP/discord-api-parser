@@ -1,7 +1,7 @@
 import json
 from copy import copy
 from pathlib import Path
-from typing import Dict, List, Callable, Tuple, Any, Set
+from typing import Dict, List, Tuple, Any, Set
 
 from util import bcolors, DictNoNone
 
@@ -65,6 +65,66 @@ def parse_object_row(path: List[str], parent: Dict[str, Any], columns_in: Tuple[
             out['target'] = 'json'
         elif 'Form' in path[-1]:
             out['target'] = 'form'
+
+    return out
+
+
+ENUM_MATCH: List[Tuple[str]] = [
+    ('event', 'value'),
+    ('flag', 'value'),
+    ('key', 'value'),
+    ('level', 'integer'),
+    ('level', 'value'),
+    ('name', 'code'),
+
+    ('description', 'code'),
+
+    ('name', 'id'),
+    ('name', 'type'),
+    ('name', 'value'),
+    ('meaning', 'code'),
+    ('mode', 'value'),
+    ('permission', 'value'),
+    ('type', 'id'),
+    ('type', 'value'),
+    ('feature',),
+    ('name',),
+    ('status',),
+    ('type',),
+    ('value',)
+]
+
+
+def parse_enum_row(path: List[str], parent: Dict[str, Any], mapping: Tuple[str], columns_in: Tuple[str],
+                   row_in: List[str]):
+    columns: List[str] = [c.title() for c in columns_in]
+    row: List[str] = copy(row_in)
+
+    comments: Dict[str, str] = DictNoNone()
+
+    name_index = columns.index(mapping[0].title())
+    entry_name: str = row.pop(name_index)
+    columns.pop(name_index)
+    entry_value: str = ''
+    if len(mapping) > 1:
+        value_index = columns.index(mapping[1].title())
+        entry_value = row.pop(value_index)
+        columns.pop(value_index)
+
+    entry_name, comments["Name Note"] = get_note(parent, entry_name)
+    entry_value, comments["Value Note"] = get_note(parent, entry_value)
+
+    for _ in range(len(columns)):
+        column = columns.pop(0)
+        comments[column], comments[f'{column} Note'] = get_note(parent, row.pop(0))
+
+    out = {
+        'name': entry_name
+    }
+    if entry_value:
+        out['value'] = entry_value
+    if comments:
+        out['comments'] = comments
 
     return out
 
@@ -135,8 +195,11 @@ TABLE_MATCH: Dict[str, Set[str]] = {
         ('url', 'description'),
         ('version', 'out of service'),
         ('version', 'status', 'websocket url append')
-    },
-    "no match": {}
+    }
+}
+
+TABLE_NAME_IGNORE = {
+    'HTTP Response Codes'
 }
 
 names = set()
@@ -170,6 +233,9 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                 l: list = item
                 match l[0]:
                     case list():
+                        if path[-1] in TABLE_NAME_IGNORE:
+                            continue
+
                         table: List[List[str]] = l
 
                         name = path[-1].removesuffix(' Structure').removesuffix(' Object').removesuffix(' Fields')
@@ -181,15 +247,14 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                             name = path[-2] + ' Params'
 
                         columns = tuple(label.lower() for label in table[0])
-                        match: str = ''
-                        for match, matches in TABLE_MATCH.items():
-                            if columns in matches:
-                                break
-                        match match:
+                        match next((
+                            match for match, matches in TABLE_MATCH.items()
+                            if columns in matches
+                        ), 'unmatched'):
                             case 'object':
                                 name = ''.join(name.title().split(' '))
-                                print(pretty_path)
-                                print(name)
+                                # print(pretty_path)
+                                # print(name)
                                 o = dict()
                                 for row in table[1:]:
                                     res = parse_object_row(path, docs, tuple(table[0]), row)
@@ -203,20 +268,26 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                                                             "docs_url": docs["url"]
                                                         }
                                                     } | o
-                                print()
+                                # print()
                                 pass
                             case 'enum':
-                                pass
+                                # print(
+                                #     f'{pretty_path}\n{bcolors.OKGREEN}'
+                                #     f'enum: {str(columns)} {item[1:]}'
+                                #     f'{bcolors.ENDC}'
+                                # )
+                                mapping = next((
+                                    match for match in ENUM_MATCH
+                                    if all(c in [c.lower() for c in table[0]] for c in match)
+                                ), [])
+                                e = dict()
+                                for row in table[1:]:
+                                    res = parse_enum_row(path, docs, mapping, tuple(table[0]), row)
+                                    e[res.pop('name')] = res
+                                enums[name] = e
                             case 'ignored':
                                 pass
-                            case 'no match':
-                                print(
-                                    f'{pretty_path}\n{bcolors.WARNING}'
-                                    f'Unknown table: {str(columns)}: no_op, {item[1:]}'
-                                    f'{bcolors.ENDC}'
-                                )
-                                print(docs["url"])
-                            case _:
+                            case match:
                                 print(
                                     f'{pretty_path}\n{bcolors.OKCYAN}'
                                     f'Unhandled {match} table: {str(columns)} {item[1:]}'
@@ -247,11 +318,14 @@ if __name__ == '__main__':
         ]:
             # print(f'{bcolors.FAIL}{filepath.parts}{bcolors.ENDC}')
             continue
-        print(filepath.stem)
+        # print(filepath.stem)
         # print(filepath.parts)
         objects: Dict[str, Dict[str, Any]] = {}
+        enums: Dict[str, Dict[str, Any]] = {}
         extract(json.loads(filepath.read_bytes()))
         # target_dir = Path('./discord-api-json/', *filepath.parts[2:-1])
         # target_dir.mkdir(parents=True, exist_ok=True)
         if objects:
             filepath.parent.joinpath(f'{filepath.stem}.object.json').write_text(json.dumps(objects, indent=2))
+        if enums:
+            filepath.parent.joinpath(f'{filepath.stem}.enum.json').write_text(json.dumps(enums, indent=2))
