@@ -58,11 +58,11 @@ def parse_file(path):
         for node in md['children']:
             match node['type']:
                 case 'Heading':
-                    level = [0, 0, 1, 1, 2 if not path.stem == "Gateway" else 1, 2, 2][node['level']]
+                    level = [0, 0, 1, 1, 2, 2, 2][node['level']]
                     content = node['children'][0]['content']
                     #print(node['level'], level, content, node)
                     headers = [*headers[:level], content, *[''] * (2 - level)]
-                    if headers[1].endswith('Object') or path.stem == "Gateway":
+                    if headers[1].endswith('Object') or path.stem == "Gateway" or headers[1].endswith('Event Fields'):
                         if headers[2]:
                             docs_url =\
                                 f'https://discord.com/developers/docs/{path.parts[-2]}'\
