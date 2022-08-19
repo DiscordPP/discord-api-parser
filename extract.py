@@ -1,15 +1,11 @@
 import json
 from copy import copy
 from pathlib import Path
-from typing import Dict, List, Callable, Tuple, Any
+from typing import Dict, List, Callable, Tuple, Any, Set
 
 from util import bcolors, DictNoNone
 
 API_Object = Dict[str, str | bool | Dict[str, str]]
-
-
-def no_op(columns, row):
-    return row
 
 
 def get_note(parent, s: str):
@@ -73,76 +69,72 @@ def parse_object_row(path: List[str], parent: Dict[str, Any], columns_in: Tuple[
     return out
 
 
-TABLE_MATCH: Dict[
-    str, Dict[
-        Tuple[str], Callable[[List[str], Dict[str, Any], Tuple[str], List[str]], API_Object | Dict[str, str]]]] = {
+TABLE_MATCH: Dict[str, Set[str]] = {
     "object": {
-        ('field', 'type'): parse_object_row,
-        ('field', 'type', 'associated action types', 'description'): parse_object_row,
-        ('field', 'type', 'associated trigger types', 'description'): parse_object_row,
-        ('field', 'type', 'description'): parse_object_row,
-        ('field', 'type', 'description', 'accepted values'): parse_object_row,
-        ('field', 'type', 'description', 'channel type'): parse_object_row,
-        ('field', 'type', 'description', 'default'): parse_object_row,
-        ('field', 'type', 'description', 'event types'): parse_object_row,
-        ('field', 'type', 'description', 'required'): parse_object_row,
-        ('field', 'type', 'description', 'permission'): parse_object_row,
-        ('field', 'type', 'description', 'present'): parse_object_row,
-        ('field', 'type', 'description', 'required', 'default'): parse_object_row,
-        ('field', 'type', 'description', 'required oauth2 scope'): parse_object_row,
-        ('field', 'type', 'description', 'valid types'): parse_object_row
+        ('field', 'type'),
+        ('field', 'type', 'associated action types', 'description'),
+        ('field', 'type', 'associated trigger types', 'description'),
+        ('field', 'type', 'description'),
+        ('field', 'type', 'description', 'accepted values'),
+        ('field', 'type', 'description', 'channel type'),
+        ('field', 'type', 'description', 'default'),
+        ('field', 'type', 'description', 'event types'),
+        ('field', 'type', 'description', 'required'),
+        ('field', 'type', 'description', 'permission'),
+        ('field', 'type', 'description', 'present'),
+        ('field', 'type', 'description', 'required', 'default'),
+        ('field', 'type', 'description', 'required oauth2 scope'),
+        ('field', 'type', 'description', 'valid types')
     },
     "enum": {
-        ('code', 'name', 'client action', 'description'): no_op,
-        ('code', 'description', 'explanation'): no_op,
-        ('code', 'description', 'explanation', 'reconnect'): no_op,
-        ('code', 'meaning'): no_op,
-        ('code', 'name', 'description'): no_op,
-        ('code', 'name', 'sent by', 'description'): no_op,
-        ('event', 'value', 'description', 'object changed'): no_op,
-        ('feature', 'description'): no_op,
-        ('field', 'description'): no_op,
-        ('flag', 'meaning', 'value'): no_op,
-        ('flag', 'value', 'description'): no_op,
-        ('key', 'value', 'description'): no_op,
-        ('level', 'value'): no_op,
-        ('level', 'value', 'description'): no_op,
-        ('level', 'integer', 'description'): no_op,
-        ('id', 'name', 'format', 'example'): no_op,
-        ('mode', 'value', 'description'): no_op,
-        ('name', 'description'): no_op,
-        ('name', 'type', 'description'): no_op,
-        ('name', 'value'): no_op,
-        ('name', 'value', 'color', 'required field'): no_op,
-        ('name', 'value', 'description'): no_op,
-        ('name', 'value', 'note'): no_op,
-        ('status', 'description'): no_op,
-        ('permission', 'value', 'description', 'channel type'): no_op,
-        ('type', 'description'): no_op,
-        ('type', 'id'): no_op,
-        ('type', 'id', 'description'): no_op,
-        ('type', 'value'): no_op,
-        ('type', 'value', 'description'): no_op,
-        ('type', 'value', 'description', 'max per guild'): no_op,
-        ('value', 'description', 'example'): no_op,
-        ('value', 'name'): no_op,
-        ('value', 'name', 'description'): no_op
+        ('code', 'description', 'explanation'),
+        ('code', 'description', 'explanation', 'reconnect'),
+        ('code', 'meaning'),
+        ('code', 'name', 'client action', 'description'),
+        ('code', 'name', 'description'),
+        ('code', 'name', 'sent by', 'description'),
+        ('event', 'value', 'description', 'object changed'),
+        ('feature', 'description'),
+        ('flag', 'meaning', 'value'),
+        ('flag', 'value', 'description'),
+        ('key', 'value', 'description'),
+        ('level', 'integer', 'description'),
+        ('level', 'value'),
+        ('level', 'value', 'description'),
+        ('id', 'name', 'format', 'example'),
+        ('mode', 'value', 'description'),
+        ('name', 'description'),
+        ('name', 'type', 'description'),
+        ('name', 'value'),
+        ('name', 'value', 'color', 'required field'),
+        ('name', 'value', 'description'),
+        ('name', 'value', 'note'),
+        ('status', 'description'),
+        ('permission', 'value', 'description', 'channel type'),
+        ('type', 'description'),
+        ('type', 'id', 'description'),
+        ('type', 'value'),
+        ('type', 'value', 'description'),
+        ('type', 'value', 'description', 'max per guild'),
+        ('value', 'description', 'example'),
+        ('value', 'name'),
+        ('value', 'name', 'description')
     },
     "ignored": {
-        ('entity type', 'channel_id', 'entity_metadata', 'scheduled_end_time'): no_op,
-        ('field', 'description', 'size'): no_op,
-        ('field', 'limit'): no_op,
-        ('field', 'type', 'size'): no_op,
-        ('keyword', 'matches'): no_op,
-        ('mode', 'key', 'nonce bytes', 'generating nonce'): no_op,
-        ('name', 'language'): no_op,
-        ('object changed', 'change key exceptions', 'change object exceptions'): no_op,
-        ('permission', 'value', 'type', 'description'): no_op,
-        ('type', 'format', 'image url'): no_op,
-        ('type', 'name', 'description'): no_op,
-        ('url', 'description'): no_op,
-        ('version', 'out of service'): no_op,
-        ('version', 'status', 'websocket url append'): no_op
+        ('entity type', 'channel_id', 'entity_metadata', 'scheduled_end_time'),
+        ('field', 'description', 'size'),
+        ('field', 'limit'),
+        ('field', 'type', 'size'),
+        ('keyword', 'matches'),
+        ('mode', 'key', 'nonce bytes', 'generating nonce'),
+        ('name', 'language'),
+        ('object changed', 'change key exceptions', 'change object exceptions'),
+        ('permission', 'value', 'type', 'description'),
+        ('type', 'format', 'image url'),
+        ('type', 'name', 'description'),
+        ('url', 'description'),
+        ('version', 'out of service'),
+        ('version', 'status', 'websocket url append')
     },
     "no match": {}
 }
@@ -190,8 +182,6 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
 
                         columns = tuple(label.lower() for label in table[0])
                         match: str = ''
-                        matches: Dict[Tuple[str], Callable[
-                            [List[str], Dict[str, Any], Tuple[str], List[str]], API_Object | Dict[str, str]]] = {}
                         for match, matches in TABLE_MATCH.items():
                             if columns in matches:
                                 break
@@ -202,7 +192,7 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                                 print(name)
                                 o = dict()
                                 for row in table[1:]:
-                                    res = matches[columns](path, docs, tuple(table[0]), row)
+                                    res = parse_object_row(path, docs, tuple(table[0]), row)
                                     o[res.pop('name')] = res
                                 names.add(name)
                                 if name in objects.keys():
