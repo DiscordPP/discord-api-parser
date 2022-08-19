@@ -17,3 +17,9 @@ def traverse(target, path) -> dict:
         if item:
             out = out.get(item)
     return out
+
+
+class DictNoNone(dict):
+    def __setitem__(self, key, value):
+        if value:
+            dict.__setitem__(self, key, value)
