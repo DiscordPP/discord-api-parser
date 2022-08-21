@@ -245,6 +245,7 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                             name = path[-2] + ' Response'
                         elif name.endswith(' Params') and any(key in name for key in ['JSON', 'Form', 'Query String']):
                             name = path[-2] + ' Params'
+                            continue
 
                         columns = tuple(label.lower() for label in table[0])
                         match next((
@@ -252,7 +253,7 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                             if columns in matches
                         ), 'unmatched'):
                             case 'object':
-                                name = ''.join(name.title().split(' '))
+                                #name = ''.join(name.title().split(' '))
                                 # print(pretty_path)
                                 # print(name)
                                 o = dict()
