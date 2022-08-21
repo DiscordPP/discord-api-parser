@@ -209,7 +209,9 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
     pretty_path: str = '->'.join(path) if path else 'Root'
     # print(pretty_path)
 
-    for item in docs["content"]:
+    items = iter(docs["content"])
+
+    for item in items:
         match item:
             case str():
                 s: str = item
