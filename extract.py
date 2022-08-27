@@ -1,4 +1,5 @@
 import json
+import re
 from copy import copy
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Set
@@ -21,7 +22,7 @@ def get_note(parent, s: str):
     return s.strip(), note
 
 
-def parse_object_row(path: List[str], parent: Dict[str, Any], columns_in: Tuple[str], row_in: List[str]) -> API_Object:
+def parse_object_row(parent: Dict[str, Any], columns_in: Tuple[str], row_in: List[str]) -> API_Object:
     columns: List[str] = [c.title() for c in columns_in]
     row: List[str] = copy(row_in)
 
@@ -55,16 +56,6 @@ def parse_object_row(path: List[str], parent: Dict[str, Any], columns_in: Tuple[
         'nullable': nullable,
         'comments': comment
     }
-
-    if path[-1].endswith('Params'):
-        if 'Query String' in path[-1]:
-            out['target'] = 'query string'
-        elif 'JSON/Form' in path[-1]:
-            out['target'] = 'json/form'
-        elif 'JSON' in path[-1]:
-            out['target'] = 'json'
-        elif 'Form' in path[-1]:
-            out['target'] = 'form'
 
     return out
 
@@ -202,14 +193,32 @@ TABLE_NAME_IGNORE = {
     'HTTP Response Codes'
 }
 
-names = set()
 
-
-def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
+def extract(node: Dict[str, Any], path: List[str] = None):
     pretty_path: str = '->'.join(path) if path else 'Root'
-    # print(pretty_path)
+    print(pretty_path)
 
-    items = iter(docs["content"])
+    if 'endpoint' in node:
+        print(pretty_path)
+        print(node['endpoint'])
+        print(node['url'])
+        command, url = node['endpoint'].split(' ', 1)
+        url = re.sub(r'#[^}]+}', '}', url)  # .replace('.', '_')
+        url_params = {}
+        for param in re.findall(r'(?<=\{)[^}]+(?=})', url):
+            url_params[param] = {
+                'type': 'snowflake' if param.endswith(".id") or param == "emoji" else 'string'
+            }
+        e = {
+            'command': command,
+            'url': url,
+            'docs_url': node['url']
+        }
+        if url_params:
+            e["url params"] = url_params
+        endpoints[path[-1]] = e
+
+    items = iter(node["content"])
 
     for item in items:
         match item:
@@ -217,7 +226,7 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                 s: str = item
                 if s.startswith('|'):
                     header = s.removeprefix('|')
-                    extract(docs[header], (path or []) + [header])
+                    extract(node[header], (path or []) + [header])
                 if s.startswith('*'):
                     # print(f'{pretty_path}\n{bcolors.OKCYAN}Unhandled note: {s}{bcolors.ENDC}')
                     pass
@@ -246,8 +255,13 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                         elif name in ['JSON Response', 'Response Body', 'Response']:
                             name = path[-2] + ' Response'
                         elif name.endswith(' Params') and any(key in name for key in ['JSON', 'Form', 'Query String']):
-                            name = path[-2] + ' Params'
-                            continue
+                            if name == 'Gateway URL Query String Params':
+                                continue
+                            name = '|' + next(iter(
+                                key.lower()
+                                for key in ['JSON/Form', 'JSON', 'Form', 'Query String']
+                                if key in name
+                            ))
 
                         columns = tuple(label.lower() for label in table[0])
                         match next((
@@ -255,20 +269,21 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                             if columns in matches
                         ), 'unmatched'):
                             case 'object':
-                                #name = ''.join(name.title().split(' '))
+                                # name = ''.join(name.title().split(' '))
                                 # print(pretty_path)
                                 # print(name)
                                 o = dict()
                                 for row in table[1:]:
-                                    res = parse_object_row(path, docs, tuple(table[0]), row)
+                                    res = parse_object_row(node, tuple(table[0]), row)
                                     o[res.pop('name')] = res
-                                names.add(name)
-                                if name in objects.keys():
+                                if name.startswith('|'):
+                                    endpoints[path[-2]][name[1:]] = o
+                                elif name in objects.keys():
                                     objects[name] |= o
                                 else:
                                     objects[name] = {
-                                                        "parser-data": {
-                                                            "docs_url": docs["url"]
+                                                        'parser-data': {
+                                                            'docs_url': node['url']
                                                         }
                                                     } | o
                                 # print()
@@ -285,7 +300,7 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
                                 ), [])
                                 e = dict()
                                 for row in table[1:]:
-                                    res = parse_enum_row(path, docs, mapping, tuple(table[0]), row)
+                                    res = parse_enum_row(path, node, mapping, tuple(table[0]), row)
                                     e[res.pop('name')] = res
                                 enums[name] = e
                             case 'ignored':
@@ -305,7 +320,7 @@ def extract(docs: Dict[str, Dict[str, Any]], path: List[str] = None):
 
 
 if __name__ == '__main__':
-    for filepath in Path('./discord-api-json').rglob("*.json"):
+    for filepath in Path('./discord-api-json').rglob('*.json'):
         if '.' in filepath.stem \
                 or len(filepath.parts) < 3 \
                 or filepath.parts[1] in [
@@ -325,6 +340,7 @@ if __name__ == '__main__':
         # print(filepath.parts)
         objects: Dict[str, Dict[str, Any]] = {}
         enums: Dict[str, Dict[str, Any]] = {}
+        endpoints: Dict[str, Dict[str, Any]] = {}
         extract(json.loads(filepath.read_bytes()))
         # target_dir = Path('./discord-api-json/', *filepath.parts[2:-1])
         # target_dir.mkdir(parents=True, exist_ok=True)
@@ -332,3 +348,5 @@ if __name__ == '__main__':
             filepath.parent.joinpath(f'{filepath.stem}.object.json').write_text(json.dumps(objects, indent=2))
         if enums:
             filepath.parent.joinpath(f'{filepath.stem}.enum.json').write_text(json.dumps(enums, indent=2))
+        if endpoints:
+            filepath.parent.joinpath(f'{filepath.stem}.endpoint.json').write_text(json.dumps(endpoints, indent=2))
