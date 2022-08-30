@@ -1,6 +1,6 @@
 [submodule "discord-api-docs"]
 	path = discord-api-docs
-	url = https://github.com/undarkaido/discord-api-docs.git
+	url = https://github.com/discord/discord-api-docs.git
 [submodule "discord-api-json"]
 	path = discord-api-json
 	url = https://github.com/UndarkAido/discord-api-json.git

@@ -196,12 +196,9 @@ TABLE_NAME_IGNORE = {
 
 def extract(node: Dict[str, Any], path: List[str] = None):
     pretty_path: str = '->'.join(path) if path else 'Root'
-    print(pretty_path)
+    # print(pretty_path)
 
     if 'endpoint' in node:
-        print(pretty_path)
-        print(node['endpoint'])
-        print(node['url'])
         command, url = node['endpoint'].split(' ', 1)
         url = re.sub(r'#[^}]+}', '}', url)  # .replace('.', '_')
         url_params = {}
