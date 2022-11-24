@@ -61,12 +61,16 @@ def parse_object_row(parent: Dict[str, Any], columns_in: Tuple[str], row_in: Lis
 
 
 ENUM_MATCH: List[Tuple[str]] = [
+    ('action type', 'value'),
     ('event', 'value'),
+    ('event type', 'value'),
     ('flag', 'value'),
     ('key', 'value'),
     ('level', 'integer'),
     ('level', 'value'),
     ('name', 'code'),
+    ('preset type', 'value'),
+    ('trigger type', 'value'),
 
     ('description', 'code'),
 
@@ -139,6 +143,7 @@ TABLE_MATCH: Dict[str, Set[str]] = {
         ('field', 'type', 'description', 'valid types')
     },
     "enum": {
+        ('action type', 'value', 'description'),
         ('code', 'description', 'explanation'),
         ('code', 'description', 'explanation', 'reconnect'),
         ('code', 'meaning'),
@@ -146,6 +151,7 @@ TABLE_MATCH: Dict[str, Set[str]] = {
         ('code', 'name', 'description'),
         ('code', 'name', 'sent by', 'description'),
         ('event', 'value', 'description', 'object changed'),
+        ('event type', 'value', 'description'),
         ('feature', 'description'),
         ('features', 'required permissions', 'effects'),
         ('flag', 'meaning', 'value'),
@@ -164,6 +170,8 @@ TABLE_MATCH: Dict[str, Set[str]] = {
         ('name', 'value', 'note'),
         ('status', 'description'),
         ('permission', 'value', 'description', 'channel type'),
+        ('preset type', 'value', 'description'),
+        ('trigger type', 'value', 'description', 'max per guild'),
         ('type', 'description'),
         ('type', 'id', 'description'),
         ('type', 'value'),
@@ -184,6 +192,7 @@ TABLE_MATCH: Dict[str, Set[str]] = {
         ('name', 'language'),
         ('object changed', 'change key exceptions', 'change object exceptions'),
         ('permission', 'value', 'type', 'description'),
+        ('field', 'trigger type', 'max array length', 'max characters per string'),
         ('type', 'format', 'image url'),
         ('type', 'name', 'description'),
         ('url', 'description'),
