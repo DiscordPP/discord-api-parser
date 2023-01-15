@@ -354,8 +354,14 @@ if __name__ == '__main__':
         # target_dir = Path('./discord-api-json/', *filepath.parts[2:-1])
         # target_dir.mkdir(parents=True, exist_ok=True)
         if objects:
-            filepath.parent.joinpath(f'{filepath.stem}.object.json').write_text(json.dumps(objects, indent=2))
+            path = filepath.parent.joinpath(f'{filepath.stem}.object.json')
+            print("Writing to", path)
+            path.write_text(json.dumps(objects, indent=2))
         if enums:
-            filepath.parent.joinpath(f'{filepath.stem}.enum.json').write_text(json.dumps(enums, indent=2))
+            path = filepath.parent.joinpath(f'{filepath.stem}.enum.json')
+            print("Writing to", path)
+            path.write_text(json.dumps(enums, indent=2))
         if endpoints:
-            filepath.parent.joinpath(f'{filepath.stem}.endpoint.json').write_text(json.dumps(endpoints, indent=2))
+            path = filepath.parent.joinpath(f'{filepath.stem}.endpoint.json')
+            print("Writing to", path)
+            path.write_text(json.dumps(endpoints, indent=2))
