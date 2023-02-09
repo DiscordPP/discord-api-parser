@@ -76,6 +76,7 @@ def simplify(filepath) -> dict:
 
 if __name__ == '__main__':
     for filepath in Path('./discord-api-docs/docs').rglob("*.md"):
+        print(filepath)
         simplified = simplify(filepath)
         # print(simplified)
         target_dir = Path('./discord-api-json/', *filepath.parts[2:-1])
