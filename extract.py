@@ -156,6 +156,7 @@ TABLE_MATCH: Dict[str, Set[str]] = {
         ('features', 'required permissions', 'effects'),
         ('flag', 'meaning', 'value'),
         ('flag', 'value', 'description'),
+        ('flag', 'value', 'description', 'editable'),
         ('key', 'value', 'description'),
         ('level', 'integer', 'description'),
         ('level', 'value'),
