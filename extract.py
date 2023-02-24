@@ -260,6 +260,10 @@ def extract(node: Dict[str, Any], path: List[str] = None):
                         table: List[List[str]] = l
 
                         name = path[-1].removesuffix(' Structure').removesuffix(' Object').removesuffix(' Fields')
+                        extra = re.search(r"\((.+)\)", name)
+                        if extra:
+                            extra = extra.groups()[0]
+                            name = re.sub(r" \(.+\)", "", name)
                         if name == 'Payload' and path[0] == 'RPC':
                             name = 'RPC Payload'
                         elif name in ['JSON Response', 'Response Body', 'Response']:
@@ -267,11 +271,15 @@ def extract(node: Dict[str, Any], path: List[str] = None):
                         elif name.endswith(' Params') and any(key in name for key in ['JSON', 'Form', 'Query String']):
                             if name == 'Gateway URL Query String Params':
                                 continue
-                            name = '|' + next(iter(
+                            params_name = '|'
+                            if extra:
+                                params_name += f"{extra.lower()} "
+                            params_name += next(iter(
                                 key.lower()
                                 for key in ['JSON/Form', 'JSON', 'Form', 'Query String']
                                 if key in name
                             ))
+                            name = params_name
 
                         columns = tuple(label.lower() for label in table[0])
                         match next((
