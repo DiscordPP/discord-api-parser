@@ -129,6 +129,7 @@ TABLE_MATCH: Dict[str, Set[str]] = {
     "object": {
         ('field', 'type'),
         ('field', 'type', 'associated action types', 'description'),
+        ('field', 'type', 'associated action types', 'description', 'constraints'),
         ('field', 'type', 'associated trigger types', 'description'),
         ('field', 'type', 'description'),
         ('field', 'type', 'description', 'accepted values'),
