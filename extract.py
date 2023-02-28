@@ -248,6 +248,27 @@ def extract(node: Dict[str, Any], path: List[str] = None):
                 d: dict = item
                 if d.keys() == {'language', 'code'}:
                     # print(f'{pretty_path}\nIgnoring code block')
+                    if path == ['Gateway', 'Gateway Intents', 'List of Intents']:
+                        enums['intent'] = {
+                            key.split(' ', 1)[0]: {
+                                'value': key.split(' ', 1)[1][1:-1],
+                                'comments': {
+                                    "Events": ' '.join(value)
+                                }
+                            }
+                            for key, value in {
+                                intent[0].strip(): [
+                                    event.strip()
+                                    for event in intent[1:]
+                                ]
+                                for intent
+                                in [
+                                    block.replace('*','').replace('-','').split('\n')
+                                    for block
+                                    in item['code'].split('\n\n')
+                                ]
+                            }.items()
+                        }
                     pass
                 else:
                     print(f'{pretty_path}\n{bcolors.WARNING}Unknown dict: {item}{bcolors.ENDC}')
